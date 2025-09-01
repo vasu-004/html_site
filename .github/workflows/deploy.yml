@@ -31,19 +31,19 @@ jobs:
 
             # Navigate to app directory or clone fresh
             if [ ! -d "/home/ec2-user/html-app" ]; then
-              git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO.git /home/ec2-user/html-app
+              git clone https://github.com/vasu-004/html_site.git /home/ec2-user/html-app
             else
               cd /home/ec2-user/html-app && git pull
             fi
 
-            cd /home/ec2-user/html-app
+            cd /home/ec2-user/html-site
 
             # Build Docker image
-            docker build -t html-app:latest .
+            docker build -t html-site:latest .
 
             # Stop existing container if running
-            docker rm -f html-app || true
+            docker rm -f html-site || true
 
             # Run new container (serving HTML on port 80)
-            docker run -d --name html-app -p 80:80 html-app:latest
+            docker run -d --name html-site -p 80:80 html-app:latest
           EOF
