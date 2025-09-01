@@ -47,3 +47,4 @@ jobs:
             docker stop my-html-app || true
             docker rm my-html-app || true
             docker run -d --name my-html-app -p 80:80 my-html-app:latest
+            
