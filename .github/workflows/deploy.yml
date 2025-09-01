@@ -1,57 +1,44 @@
-name: Deploy HTML App to EC2
+name: Deploy HTML App to EC2 via Docker
 
 on:
   push:
     branches:
-      - main
+      - main  # or your deployment branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-
-      - name: Copy source code to EC2
-        uses: appleboy/scp-action@v0.1.7
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: "private_key.pem"
-          source: "."
-          target: "~/html_app"
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t html-app:latest .
+
+      - name: Save Docker image as tar
+        run: |
+          docker save html-app:latest > html-app.tar
+
+      - name: Copy Docker image to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no html-app.tar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
 
       - name: Deploy on EC2
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: "private_key.pem"
-          script: |
-            # Install Docker if not installed
-            if ! command -v docker &> /dev/null; then
-              sudo apt-get update -y
-              sudo apt-get install -y docker.io
-              sudo systemctl enable docker
-              sudo systemctl start docker
-              sudo usermod -aG docker $USER
-            fi
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            # Load Docker image
+            docker load < html-app.tar
 
-            # Navigate to app directory
-            cd ~/html_app
+            # Stop existing container if running
+            docker rm -f html-app || true
 
-            # Build Docker image from Dockerfile and index.html
-            docker build -t my-html-app .
-
-            # Stop and remove any existing container
-            docker stop my-html-app || true
-            docker rm my-html-app || true
-
-            # Run new container
-            docker run -d --name my-html-app -p 80:80 my-html-app:latest
+            # Run new container (serving HTML on port 80)
+            docker run -d --name html-app -p 80:80 html-app:latest
+          EOF
