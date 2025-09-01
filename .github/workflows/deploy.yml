@@ -30,11 +30,8 @@ jobs:
             fi
 
             # Navigate to app directory or clone fresh
-            if [ ! -d "/home/ec2-user/html-app" ]; then
-              git clone https://github.com/vasu-004/html_site /home/ec2-user/html-app
-            else
-              cd /home/ec2-user/html-app && git pull
-            fi
+            
+            git clone https://github.com/vasu-004/html_site 
 
             cd /home/ec2-user/html-site
 
